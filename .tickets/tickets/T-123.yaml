@@ -1,0 +1,14 @@
+id: T-123
+epic: EPIC-120
+title: Add recent files quick-open list
+status: blocked
+depends_on:
+  - T-121
+description: |
+  Track recently opened files and expose a quick-open picker for fast access.
+acceptance_criteria:
+  - Opened files are recorded in recency order
+  - Quick-open shows recent files
+  - Selecting an item opens the file in the editor
+out_of_scope:
+  - Fuzzy ranking customization

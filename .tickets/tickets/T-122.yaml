@@ -1,0 +1,15 @@
+id: T-122
+epic: EPIC-120
+title: Build project explorer tree view
+status: open
+depends_on:
+  - T-121
+description: |
+  Render a navigable tree of project files and folders and allow opening files
+  in the editor from the tree.
+acceptance_criteria:
+  - Explorer shows nested files and folders
+  - Selecting a file opens it in the editor
+  - Tree refresh updates after file operations
+out_of_scope:
+  - Git decorations

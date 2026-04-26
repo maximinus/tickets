@@ -1,0 +1,15 @@
+id: T-102
+epic: EPIC-110
+title: Implement command registry and dispatcher
+status: closed
+depends_on:
+  - T-101
+description: |
+  Add command registration and dispatch so keyboard shortcuts and command
+  palette actions can invoke editor behaviors.
+acceptance_criteria:
+  - Commands can be registered by id
+  - Command handlers can be executed with context
+  - Unknown command ids return clear errors
+out_of_scope:
+  - UI for command palette

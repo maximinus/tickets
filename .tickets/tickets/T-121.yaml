@@ -1,0 +1,15 @@
+id: T-121
+epic: EPIC-120
+title: Implement open and save file commands
+status: open
+depends_on:
+  - T-102
+description: |
+  Add command handlers and adapters for opening a file from disk and saving
+  current editor content to disk.
+acceptance_criteria:
+  - Open file loads content into active buffer
+  - Save writes active buffer to disk
+  - Save errors are surfaced to the user
+out_of_scope:
+  - Autosave

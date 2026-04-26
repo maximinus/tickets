@@ -1,0 +1,11 @@
+id: EPIC-110
+task: TASK-100
+title: Core editor engine and command system
+status: open
+description: |
+  Implement the foundational editor surface, cursor behavior, editing actions,
+  and command routing needed by all editor features.
+acceptance_criteria:
+  - Text insertion and deletion are stable
+  - Undo and redo are implemented
+  - A command registry can dispatch editor actions

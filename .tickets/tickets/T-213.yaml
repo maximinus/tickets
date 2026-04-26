@@ -1,0 +1,15 @@
+id: T-213
+epic: EPIC-210
+title: Implement two-pane split editor layout
+status: open
+depends_on:
+  - T-103
+  - T-212
+description: |
+  Add a two-pane layout with independent cursors and synchronized file state.
+acceptance_criteria:
+  - User can open two editors side by side
+  - Each pane tracks active file and cursor independently
+  - Pane changes stay consistent with shared file data
+out_of_scope:
+  - Three or more panes

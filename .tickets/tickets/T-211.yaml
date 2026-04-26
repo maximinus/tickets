@@ -1,0 +1,14 @@
+id: T-211
+epic: EPIC-210
+title: Implement syntax tokenization pipeline
+status: open
+depends_on:
+  - T-101
+description: |
+  Build tokenizer infrastructure for language-aware syntax highlighting.
+acceptance_criteria:
+  - Tokenizer produces tokens for a sample language
+  - Token stream can be mapped to style classes
+  - Tokenization handles multiline constructs
+out_of_scope:
+  - Semantic highlighting

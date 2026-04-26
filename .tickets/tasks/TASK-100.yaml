@@ -1,0 +1,10 @@
+id: TASK-100
+title: Build core text editing experience
+status: open
+description: |
+  Deliver the main local editing workflow for a desktop-first text editor.
+  This includes a responsive editor surface, file operations, and command palette.
+acceptance_criteria:
+  - Users can create, open, edit, and save files
+  - The editor supports undo and redo
+  - The command palette can execute common editor commands

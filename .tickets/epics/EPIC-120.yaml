@@ -1,0 +1,11 @@
+id: EPIC-120
+task: TASK-100
+title: File system workflows and project explorer
+status: open
+description: |
+  Add file and folder navigation, open and save flows, and project explorer
+  interactions for multi-file editing.
+acceptance_criteria:
+  - Users can open and save individual files
+  - Users can browse a project tree
+  - Recent files list is available
