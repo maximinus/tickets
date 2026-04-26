@@ -1,0 +1,8 @@
+id: EPIC-001
+task: TASK-001
+title: Existing epic
+status: open
+description: |
+  This epic exists, but the ticket points at a different epic id.
+acceptance_criteria:
+  - Can be loaded

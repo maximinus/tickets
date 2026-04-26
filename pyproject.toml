@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tickets"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+	"PyYAML==6.0.1",
+	"ruff>=0.15.11",
+]
+
+[project.scripts]
+tickets = "tickets.cli:main"
+
+[tool.setuptools]
+packages = ["tickets"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.format]
+quote-style = "double"

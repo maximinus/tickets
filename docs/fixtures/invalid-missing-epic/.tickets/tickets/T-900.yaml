@@ -1,0 +1,11 @@
+id: T-900
+epic: EPIC-999
+title: Ticket with missing epic
+status: open
+depends_on: []
+description: |
+  This fixture intentionally references a non-existent epic id.
+acceptance_criteria:
+  - Validation must report missing epic reference
+out_of_scope:
+  - Any successful validation

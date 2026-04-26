@@ -1,0 +1,14 @@
+id: T-101
+epic: EPIC-110
+title: Build text buffer model
+status: closed
+depends_on: []
+description: |
+  Create an in-memory text buffer abstraction that supports insert, delete,
+  line access, and position mapping.
+acceptance_criteria:
+  - Insert and delete operations update buffer correctly
+  - Line and column addressing is deterministic
+  - Buffer can be serialized to plain text
+out_of_scope:
+  - File system persistence

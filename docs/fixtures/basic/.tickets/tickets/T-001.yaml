@@ -1,0 +1,14 @@
+id: T-001
+epic: EPIC-001
+title: Load YAML task, epic, and ticket files
+status: open
+depends_on: []
+description: |
+  Implement loading of YAML files from the .tickets directory and convert
+  them into internal Python objects.
+acceptance_criteria:
+  - Task files can be loaded
+  - Epic files can be loaded
+  - Ticket files can be loaded
+out_of_scope:
+  - Webpage rendering

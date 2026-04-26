@@ -1,0 +1,11 @@
+id: T-003
+epic: EPIC-001
+title: Build web UI shell
+status: blocked
+depends_on: []
+description: |
+  Add a read-only web shell for human inspection.
+acceptance_criteria:
+  - Dashboard route exists
+out_of_scope:
+  - Editing through browser

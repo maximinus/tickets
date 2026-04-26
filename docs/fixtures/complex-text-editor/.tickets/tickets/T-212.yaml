@@ -1,0 +1,16 @@
+id: T-212
+epic: EPIC-210
+title: Build search and replace engine
+status: open
+depends_on:
+  - T-122
+  - T-211
+description: |
+  Implement search and replace for active file and project scope with
+  literal and regex options.
+acceptance_criteria:
+  - Single-file search returns match ranges
+  - Replace all updates selected scope correctly
+  - Project search lists file and line references
+out_of_scope:
+  - Background indexer

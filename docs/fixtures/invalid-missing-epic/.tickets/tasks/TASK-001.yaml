@@ -1,0 +1,7 @@
+id: TASK-001
+title: Broken sample task
+status: open
+description: |
+  Fixture used to test validation failures.
+acceptance_criteria:
+  - Validation should fail because of missing epic reference

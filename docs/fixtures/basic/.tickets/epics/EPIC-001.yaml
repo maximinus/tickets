@@ -1,0 +1,10 @@
+id: EPIC-001
+task: TASK-001
+title: Build the minimal ticket system
+status: open
+description: |
+  Build loading, validation, sequencing, and prompt generation.
+acceptance_criteria:
+  - YAML files can be loaded and validated
+  - The next actionable ticket can be selected automatically
+  - The system can print the next worker prompt to standard output

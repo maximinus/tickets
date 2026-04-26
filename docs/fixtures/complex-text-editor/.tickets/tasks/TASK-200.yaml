@@ -1,0 +1,10 @@
+id: TASK-200
+title: Build advanced productivity features
+status: open
+description: |
+  Add high-value productivity capabilities for power users, including
+  syntax highlighting, search and replace, and split panes.
+acceptance_criteria:
+  - Syntax highlighting works for at least one language
+  - Search and replace supports single-file and project scope
+  - Split panes allow side-by-side editing

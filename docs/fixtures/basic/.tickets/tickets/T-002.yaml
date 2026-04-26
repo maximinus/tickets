@@ -1,0 +1,13 @@
+id: T-002
+epic: EPIC-001
+title: Validate YAML relationships
+status: open
+depends_on:
+  - T-001
+description: |
+  Validate references and dependency rules.
+acceptance_criteria:
+  - Missing references are rejected
+  - Cycles are rejected
+out_of_scope:
+  - CLI display

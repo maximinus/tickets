@@ -1,0 +1,9 @@
+id: TASK-001
+title: LLM-oriented ticket system
+status: open
+description: |
+  Create a small file-based ticket system for LLM-assisted programming work.
+acceptance_criteria:
+  - A planner can break a spec into tickets
+  - A worker can be given one ticket and one epic
+  - A human can inspect progress from the CLI and webpage

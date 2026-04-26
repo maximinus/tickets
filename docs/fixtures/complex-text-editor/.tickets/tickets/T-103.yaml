@@ -1,0 +1,14 @@
+id: T-103
+epic: EPIC-110
+title: Add undo and redo stacks
+status: in_progress
+depends_on:
+  - T-101
+description: |
+  Build undo and redo history tracking for text buffer operations.
+acceptance_criteria:
+  - Undo reverts last edit action
+  - Redo reapplies reverted action
+  - History resets correctly after divergent edits
+out_of_scope:
+  - Multi-file undo transactions
