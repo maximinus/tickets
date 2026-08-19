@@ -1,4 +1,7 @@
+from pathlib import Path
+import tempfile
 import unittest
+from unittest.mock import patch
 
 from tickets.models import Epic, Ticket
 from tickets.prompting import WORKER_INSTRUCTIONS, generate_prompt_for_ticket_id
@@ -71,6 +74,70 @@ class PromptingTests(unittest.TestCase):
         self.assertIn(WORKER_INSTRUCTIONS, prompt_text)
         self.assertIn("You are working on exactly one ticket.", prompt_text)
         self.assertIn("Use the acceptance criteria as the definition of done.", prompt_text)
+
+    def test_prompt_uses_current_working_directory_worker_file_when_available(self) -> None:
+        epics = [make_epic()]
+        tickets = [make_ticket()]
+
+        with tempfile.TemporaryDirectory() as temp_directory_string:
+            current_working_directory = Path(temp_directory_string)
+            worker_prompt_path = current_working_directory / ".tickets" / "prompts" / "worker.md"
+            worker_prompt_path.parent.mkdir(parents=True, exist_ok=True)
+            worker_prompt_path.write_text("CWD worker instructions", encoding="utf-8")
+
+            prompt_text = generate_prompt_for_ticket_id(
+                "T-001",
+                epics,
+                tickets,
+                current_working_directory=current_working_directory,
+            )
+
+            self.assertIn("CWD worker instructions", prompt_text)
+
+    def test_prompt_uses_installed_worker_file_when_current_working_directory_prompt_missing(self) -> None:
+        epics = [make_epic()]
+        tickets = [make_ticket()]
+
+        with tempfile.TemporaryDirectory() as temp_directory_string:
+            current_working_directory = Path(temp_directory_string)
+            (current_working_directory / ".tickets").mkdir(parents=True, exist_ok=True)
+
+            installed_worker_prompt_path = current_working_directory / "installed-worker.md"
+            installed_worker_prompt_path.write_text("Installed worker instructions", encoding="utf-8")
+
+            with patch(
+                "tickets.prompting.get_installed_worker_prompt_path",
+                return_value=installed_worker_prompt_path,
+            ):
+                prompt_text = generate_prompt_for_ticket_id(
+                    "T-001",
+                    epics,
+                    tickets,
+                    current_working_directory=current_working_directory,
+                )
+
+            self.assertIn("Installed worker instructions", prompt_text)
+
+    def test_prompt_falls_back_to_constant_when_no_worker_file_exists(self) -> None:
+        epics = [make_epic()]
+        tickets = [make_ticket()]
+
+        with tempfile.TemporaryDirectory() as temp_directory_string:
+            current_working_directory = Path(temp_directory_string)
+            missing_installed_worker_prompt_path = current_working_directory / "missing" / "worker.md"
+
+            with patch(
+                "tickets.prompting.get_installed_worker_prompt_path",
+                return_value=missing_installed_worker_prompt_path,
+            ):
+                prompt_text = generate_prompt_for_ticket_id(
+                    "T-001",
+                    epics,
+                    tickets,
+                    current_working_directory=current_working_directory,
+                )
+
+            self.assertIn(WORKER_INSTRUCTIONS, prompt_text)
 
     def test_error_when_ticket_id_does_not_exist(self) -> None:
         epics = [make_epic()]
