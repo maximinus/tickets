@@ -27,6 +27,50 @@ cp -R docs/fixtures/basic/.tickets .tickets
 
 ### Test A1: Validate passes
 
+Run upgrade first (safe no-op when metadata is already current):
+
+```bash
+python -m tickets upgrade
+```
+
+Expected:
+- Exit code `0`
+
+```bash
+python -m tickets validate
+```
+
+Expected:
+- Exit code `0`
+- Output contains `Validation passed.`
+
+### Test A1b: Upgrade adds missing depends_on metadata when needed
+
+Create a task file without `depends_on`:
+
+```bash
+cat > .tickets/tasks/TASK-900.yaml <<'YAML'
+id: TASK-900
+title: Upgrade metadata sample
+status: open
+description: Task used for upgrade metadata validation.
+acceptance_criteria:
+	- upgrade inserts default depends_on
+YAML
+```
+
+Run upgrade:
+
+```bash
+python -m tickets upgrade
+```
+
+Expected:
+- Exit code `0`
+- Output contains `TASK-900: Added default "depends_on" with value "[]"`
+
+Then validate:
+
 ```bash
 python -m tickets validate
 ```
@@ -141,6 +185,16 @@ cp -R docs/fixtures/complex-text-editor/.tickets .tickets
 
 ### Test C1: Validate complex fixture
 
+Run upgrade first because this fixture intentionally represents legacy metadata without `depends_on` in all files:
+
+```bash
+python -m tickets upgrade
+```
+
+Expected:
+- Exit code `0`
+- Output includes updates such as `TASK-100: Added default "depends_on" with value "[]"`
+
 ```bash
 python -m tickets validate
 ```
@@ -210,7 +264,6 @@ Expected output includes:
 - `id: T-213`
 - `title: Implement two-pane split editor layout`
 - `depends_on:`
-- `- T-103`
 - `- T-212`
 
 ## Optional cleanup

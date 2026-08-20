@@ -73,6 +73,19 @@ tickets next
 
 ```bash
 tickets validate
+tickets upgrade
+```
+
+For repositories created before mandatory dependency metadata was introduced, run `tickets upgrade` before `tickets validate`.
+
+`tickets upgrade` backfills missing required metadata fields to current defaults.
+
+Current upgrade behavior:
+- Adds `depends_on: []` to task, epic, and ticket YAML files when the field is missing.
+- Prints one line per updated entity, for example:
+
+```text
+TASK-002: Added default "depends_on" with value "[]"
 ```
 
 ### Prompting
@@ -104,6 +117,8 @@ tickets serve --host 0.0.0.0 --port 8000
 Open `http://127.0.0.1:8000/` to inspect dashboard, tasks, epics, and tickets.
 
 ## Dependency rules
+
+`depends_on` is mandatory for task, epic, and ticket files.
 
 Task dependencies are modeled with `depends_on` and are only valid for tasks within the same epic.
 

@@ -3,7 +3,6 @@ epic: EPIC-210
 title: Build search and replace engine
 status: open
 depends_on:
-  - T-122
   - T-211
 description: |
   Implement search and replace for active file and project scope with

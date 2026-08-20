@@ -2,8 +2,7 @@ id: T-211
 epic: EPIC-210
 title: Implement syntax tokenization pipeline
 status: open
-depends_on:
-  - T-101
+depends_on: []
 description: |
   Build tokenizer infrastructure for language-aware syntax highlighting.
 acceptance_criteria:

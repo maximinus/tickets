@@ -14,6 +14,16 @@ acceptance_criteria:
     - criterion one
 """.strip()
 
+SAMPLE_TASK_YAML_WITH_DEPENDS_ON = """
+id: TASK-001
+title: Example task
+status: open
+depends_on: []
+description: Task description
+acceptance_criteria:
+    - criterion one
+""".strip()
+
 SAMPLE_EPIC_YAML = """
 id: EPIC-001
 task: TASK-001
@@ -151,6 +161,12 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual(parsed_arguments.command, "import-plan")
         self.assertEqual(parsed_arguments.plan_file, "plan.yaml")
+
+    def test_argument_parsing_for_upgrade_command(self) -> None:
+        parser = build_parser()
+        parsed_arguments = parser.parse_args(["upgrade"])
+
+        self.assertEqual(parsed_arguments.command, "upgrade")
 
     def test_argument_parsing_for_serve_command(self) -> None:
         parser = build_parser()
@@ -468,6 +484,63 @@ class CliTests(unittest.TestCase):
             self.assertTrue(created_epic_path.exists())
             self.assertTrue(created_ticket_path.exists())
 
+    def test_upgrade_command_adds_default_depends_on_for_missing_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_directory_string:
+            root_path = Path(temp_directory_string)
+            write_sample_task(root_path)
+            write_sample_epic_without_depends_on(root_path)
+            write_sample_ticket_without_depends_on(root_path, ticket_id="T-001")
+
+            standard_output = StringIO()
+            standard_error = StringIO()
+            exit_code = run_cli(
+                ["upgrade"],
+                standard_output=standard_output,
+                standard_error=standard_error,
+                root_path=root_path,
+            )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(standard_error.getvalue(), "")
+
+            output_lines = standard_output.getvalue().splitlines()
+            self.assertEqual(
+                output_lines,
+                [
+                    'TASK-001: Added default "depends_on" with value "[]"',
+                    'EPIC-001: Added default "depends_on" with value "[]"',
+                    'T-001: Added default "depends_on" with value "[]"',
+                ],
+            )
+
+            task_text = (root_path / ".tickets" / "tasks" / "TASK-001.yaml").read_text(encoding="utf-8")
+            epic_text = (root_path / ".tickets" / "epics" / "EPIC-001.yaml").read_text(encoding="utf-8")
+            ticket_text = (root_path / ".tickets" / "tickets" / "T-001.yaml").read_text(encoding="utf-8")
+
+            self.assertIn("depends_on: []", task_text)
+            self.assertIn("depends_on: []", epic_text)
+            self.assertIn("depends_on: []", ticket_text)
+
+    def test_upgrade_command_noop_for_existing_depends_on(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_directory_string:
+            root_path = Path(temp_directory_string)
+            write_sample_task_with_depends_on(root_path)
+            write_sample_epic(root_path)
+            write_sample_ticket(root_path, ticket_id="T-001", depends_on=[])
+
+            standard_output = StringIO()
+            standard_error = StringIO()
+            exit_code = run_cli(
+                ["upgrade"],
+                standard_output=standard_output,
+                standard_error=standard_error,
+                root_path=root_path,
+            )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(standard_output.getvalue(), "")
+            self.assertEqual(standard_error.getvalue(), "")
+
 
 def write_sample_task(root_path: Path) -> None:
     tasks_directory = root_path / ".tickets" / "tasks"
@@ -476,11 +549,38 @@ def write_sample_task(root_path: Path) -> None:
     task_path.write_text(SAMPLE_TASK_YAML, encoding="utf-8")
 
 
+def write_sample_task_with_depends_on(root_path: Path) -> None:
+    tasks_directory = root_path / ".tickets" / "tasks"
+    tasks_directory.mkdir(parents=True, exist_ok=True)
+    task_path = tasks_directory / "TASK-001.yaml"
+    task_path.write_text(SAMPLE_TASK_YAML_WITH_DEPENDS_ON, encoding="utf-8")
+
+
 def write_sample_epic(root_path: Path) -> None:
     epics_directory = root_path / ".tickets" / "epics"
     epics_directory.mkdir(parents=True, exist_ok=True)
     epic_path = epics_directory / "EPIC-001.yaml"
     epic_path.write_text(SAMPLE_EPIC_YAML, encoding="utf-8")
+
+
+def write_sample_epic_without_depends_on(root_path: Path) -> None:
+    epics_directory = root_path / ".tickets" / "epics"
+    epics_directory.mkdir(parents=True, exist_ok=True)
+    epic_path = epics_directory / "EPIC-001.yaml"
+    epic_path.write_text(
+        "\n".join(
+            [
+                "id: EPIC-001",
+                "task: TASK-001",
+                "title: Example epic",
+                "status: open",
+                "description: Epic description",
+                "acceptance_criteria:",
+                "    - criterion one",
+            ]
+        ),
+        encoding="utf-8",
+    )
 
 
 def write_sample_ticket(
@@ -499,6 +599,28 @@ def write_sample_ticket(
             title=f"Ticket {ticket_id}",
             status=status,
             depends_on=dependency_ids,
+        ),
+        encoding="utf-8",
+    )
+
+
+def write_sample_ticket_without_depends_on(root_path: Path, ticket_id: str) -> None:
+    tickets_directory = root_path / ".tickets" / "tickets"
+    tickets_directory.mkdir(parents=True, exist_ok=True)
+    ticket_path = tickets_directory / f"{ticket_id}.yaml"
+    ticket_path.write_text(
+        "\n".join(
+            [
+                f"id: {ticket_id}",
+                "epic: EPIC-001",
+                f"title: Ticket {ticket_id}",
+                "status: open",
+                "description: Ticket description",
+                "acceptance_criteria:",
+                "    - criterion one",
+                "out_of_scope:",
+                "    - not included",
+            ]
         ),
         encoding="utf-8",
     )

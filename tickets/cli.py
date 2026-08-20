@@ -13,6 +13,7 @@ from tickets.creation import (
 from tickets.prompting import generate_prompt_for_ticket_id
 from tickets.repository import RepositoryError, TicketRepository
 from tickets.sequencing import find_next_actionable_ticket
+from tickets.upgrade import upgrade_repository_metadata
 from tickets.web import serve_tickets_web
 
 LIST_ENTITY_CHOICES = ["tasks", "epics", "tickets"]
@@ -46,6 +47,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     import_plan_parser = subparsers.add_parser("import-plan", help="Import epic and tickets from a plan YAML file")
     import_plan_parser.add_argument("plan_file")
+
+    subparsers.add_parser("upgrade", help="Upgrade ticket metadata to current schema defaults")
 
     serve_parser = subparsers.add_parser("serve", help="Serve the read-only local web interface")
     serve_parser.add_argument("--host", default="127.0.0.1")
@@ -92,6 +95,8 @@ def run_cli(
         if parsed_arguments.command == "import-plan":
             plan_file_path = Path(parsed_arguments.plan_file)
             return handle_import_plan_command(repository_root_path, plan_file_path, output_stream)
+        if parsed_arguments.command == "upgrade":
+            return handle_upgrade_command(repository_root_path, output_stream)
         if parsed_arguments.command == "serve":
             return handle_serve_command(
                 repository_root_path, parsed_arguments.host, parsed_arguments.port, output_stream
@@ -242,6 +247,13 @@ def handle_import_plan_command(root_path: Path, plan_file_path: Path, output_str
 
 def handle_serve_command(root_path: Path, host: str, port: int, output_stream: TextIO) -> int:
     serve_tickets_web(root_path, host=host, port=port, output_stream=output_stream)
+    return SUCCESS_EXIT_CODE
+
+
+def handle_upgrade_command(root_path: Path, output_stream: TextIO) -> int:
+    update_messages = upgrade_repository_metadata(root_path)
+    for message in update_messages:
+        print(message, file=output_stream)
     return SUCCESS_EXIT_CODE
 
 
