@@ -89,17 +89,52 @@ class SequencingTests(unittest.TestCase):
 
         self.assertIsNone(next_ticket)
 
-    def test_select_deterministically_when_multiple_are_actionable(self) -> None:
+    def test_select_deterministically_when_multiple_are_actionable_by_epic_task_ticket_number(self) -> None:
         tickets = [
-            make_ticket("T-010", status="open"),
-            make_ticket("T-002", status="open"),
-            make_ticket("T-100", status="open"),
+            Ticket(
+                id="T-010",
+                epic="EPIC-010",
+                title="Ticket title",
+                status="open",
+                depends_on=[],
+                description="Ticket description",
+                acceptance_criteria=["criterion"],
+                out_of_scope=["not included"],
+            ),
+            Ticket(
+                id="T-002",
+                epic="EPIC-002",
+                title="Ticket title",
+                status="open",
+                depends_on=[],
+                description="Ticket description",
+                acceptance_criteria=["criterion"],
+                out_of_scope=["not included"],
+            ),
+            Ticket(
+                id="T-100",
+                epic="EPIC-001",
+                title="Ticket title",
+                status="open",
+                depends_on=[],
+                description="Ticket description",
+                acceptance_criteria=["criterion"],
+                out_of_scope=["not included"],
+            ),
         ]
 
-        next_ticket = find_next_actionable_ticket(tickets)
+        next_ticket = find_next_actionable_ticket(
+            tickets,
+            epics=[
+                type("Epic", (), {"id": "EPIC-001", "task": "TASK-001"})(),
+                type("Epic", (), {"id": "EPIC-002", "task": "TASK-001"})(),
+                type("Epic", (), {"id": "EPIC-010", "task": "TASK-001"})(),
+            ],
+            tasks=[type("Task", (), {"id": "TASK-001"})()],
+        )
 
         self.assertIsNotNone(next_ticket)
-        self.assertEqual(next_ticket.id, "T-002")
+        self.assertEqual(next_ticket.id, "T-100")
 
     def test_handle_empty_ticket_list(self) -> None:
         next_ticket = find_next_actionable_ticket([])

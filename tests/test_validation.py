@@ -4,17 +4,27 @@ from tickets.models import Epic, Task, Ticket
 from tickets.validation import ValidationError, validate_repository_data
 
 
-def make_task(task_id: str = "TASK-001", status: str = "open") -> Task:
+def make_task(
+    task_id: str = "TASK-001",
+    status: str = "open",
+    depends_on: list[str] | None = None,
+) -> Task:
     return Task(
         id=task_id,
         title="Task title",
         status=status,
         description="Task description",
         acceptance_criteria=["criterion"],
+        depends_on=depends_on if depends_on is not None else [],
     )
 
 
-def make_epic(epic_id: str = "EPIC-001", task_id: str = "TASK-001", status: str = "open") -> Epic:
+def make_epic(
+    epic_id: str = "EPIC-001",
+    task_id: str = "TASK-001",
+    status: str = "open",
+    depends_on: list[str] | None = None,
+) -> Epic:
     return Epic(
         id=epic_id,
         task=task_id,
@@ -22,6 +32,7 @@ def make_epic(epic_id: str = "EPIC-001", task_id: str = "TASK-001", status: str 
         status=status,
         description="Epic description",
         acceptance_criteria=["criterion"],
+        depends_on=depends_on if depends_on is not None else [],
     )
 
 
@@ -90,6 +101,51 @@ class ValidationTests(unittest.TestCase):
 
         self.assertIn("missing ticket", str(error_context.exception))
         self.assertIn("T-999", str(error_context.exception))
+
+    def test_reject_task_dependency_for_different_epic(self) -> None:
+        tasks = [make_task(task_id="TASK-001"), make_task(task_id="TASK-002")]
+        epics = [
+            make_epic(epic_id="EPIC-001", task_id="TASK-001"),
+            make_epic(epic_id="EPIC-002", task_id="TASK-002"),
+        ]
+        tasks[0] = make_task(task_id="TASK-001", depends_on=["TASK-002"])
+
+        with self.assertRaises(ValidationError) as error_context:
+            validate_repository_data(tasks, epics, [])
+
+        self.assertIn("same epic", str(error_context.exception))
+        self.assertIn("TASK-001", str(error_context.exception))
+
+    def test_reject_ticket_dependency_for_different_task(self) -> None:
+        tasks = [make_task(task_id="TASK-001"), make_task(task_id="TASK-002")]
+        epics = [
+            make_epic(epic_id="EPIC-001", task_id="TASK-001"),
+            make_epic(epic_id="EPIC-002", task_id="TASK-002"),
+        ]
+        tickets = [
+            make_ticket(ticket_id="T-001", epic_id="EPIC-001"),
+            make_ticket(ticket_id="T-002", epic_id="EPIC-002", depends_on=["T-001"]),
+        ]
+
+        with self.assertRaises(ValidationError) as error_context:
+            validate_repository_data(tasks, epics, tickets)
+
+        self.assertIn("same task", str(error_context.exception))
+        self.assertIn("T-002", str(error_context.exception))
+
+    def test_reject_epic_dependency_for_different_task(self) -> None:
+        tasks = [make_task(task_id="TASK-001"), make_task(task_id="TASK-002")]
+        epics = [
+            make_epic(epic_id="EPIC-001", task_id="TASK-001"),
+            make_epic(epic_id="EPIC-002", task_id="TASK-002", depends_on=["EPIC-001"]),
+        ]
+        tickets = [make_ticket(ticket_id="T-001", epic_id="EPIC-001")]
+
+        with self.assertRaises(ValidationError) as error_context:
+            validate_repository_data(tasks, epics, tickets)
+
+        self.assertIn("same task", str(error_context.exception))
+        self.assertIn("EPIC-002", str(error_context.exception))
 
     def test_detect_simple_ticket_dependency_cycle(self) -> None:
         tasks = [make_task()]

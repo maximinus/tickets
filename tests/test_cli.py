@@ -19,6 +19,7 @@ id: EPIC-001
 task: TASK-001
 title: Example epic
 status: open
+depends_on: []
 description: Epic description
 acceptance_criteria:
     - criterion one
@@ -56,6 +57,7 @@ epic:
     task: TASK-001
     title: Imported epic
     status: open
+    depends_on: []
     description: Imported epic description
     acceptance_criteria:
         - epic criterion

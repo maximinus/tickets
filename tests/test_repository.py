@@ -36,6 +36,7 @@ id: {epic_id}
 task: {task_id}
 title: Sample epic
 status: open
+depends_on: []
 description: Example epic description
 acceptance_criteria:
     - criterion one

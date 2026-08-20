@@ -255,7 +255,9 @@ The system shall enforce the following relationships:
 
 * every epic must reference an existing task
 * every ticket must reference an existing epic
-* every dependency listed in `depends_on` must reference an existing ticket
+* every task dependency listed in `depends_on` must reference an existing task in the same epic
+* every epic dependency listed in `depends_on` must reference an existing epic in the same task
+* every ticket dependency listed in `depends_on` must reference an existing ticket in the same task
 * the dependency graph must not contain cycles
 
 The system shall not store reverse dependency fields such as `blocks`. Reverse dependency information shall be derived automatically from `depends_on`.
@@ -272,12 +274,14 @@ A ticket is actionable if:
 
 Where multiple actionable tickets exist, the system shall choose one deterministically.
 
-Recommended initial rule:
+The initial ordering rule is:
 
-1. sort tickets by ID
-2. choose the first ticket whose dependencies are satisfied
+1. choose the lowest numbered epic among actionable tickets
+2. within that epic, choose the lowest numbered task
+3. within that task, choose the lowest numbered ticket
+4. if a ticket has dependencies, skip it until all of them are closed
 
-A later rule may prefer grouping by epic or preserving creation order, but the first implementation should remain simple and predictable.
+This preserves a simple predictable order without violating same-task dependency rules.
 
 ## 13. Prompt generation
 

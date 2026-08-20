@@ -50,6 +50,7 @@ def create_task_from_arguments(
         status=DEFAULT_TASK_STATUS,
         description=description,
         acceptance_criteria=resolved_acceptance_criteria,
+        depends_on=[],
     )
 
     try:
@@ -113,6 +114,7 @@ def parse_imported_epic(epic_data: Any, plan_file_path: Path) -> Epic:
         status=require_string(epic_data, "status", "epic"),
         description=require_string(epic_data, "description", "epic"),
         acceptance_criteria=acceptance_criteria,
+        depends_on=require_string_list(epic_data, "depends_on", "epic"),
     )
 
 
@@ -174,6 +176,7 @@ def write_task_yaml(root_path: Path, task: Task) -> None:
         "id": task.id,
         "title": task.title,
         "status": task.status,
+        "depends_on": task.depends_on,
         "description": task.description,
         "acceptance_criteria": task.acceptance_criteria,
     }
@@ -190,6 +193,7 @@ def write_epic_yaml(root_path: Path, epic: Epic) -> None:
         "task": epic.task,
         "title": epic.title,
         "status": epic.status,
+        "depends_on": epic.depends_on,
         "description": epic.description,
         "acceptance_criteria": epic.acceptance_criteria,
     }

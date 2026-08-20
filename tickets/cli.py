@@ -174,7 +174,7 @@ def handle_validate_command(root_path: Path, output_stream: TextIO) -> int:
 def handle_next_command(root_path: Path, output_stream: TextIO) -> int:
     repository = TicketRepository(root_path)
     tasks, epics, tickets = repository.load_all()
-    next_ticket = find_next_actionable_ticket(tickets)
+    next_ticket = find_next_actionable_ticket(tickets, epics, tasks)
 
     if next_ticket is None:
         print("No actionable tickets found.", file=output_stream)

@@ -103,6 +103,18 @@ tickets serve --host 0.0.0.0 --port 8000
 
 Open `http://127.0.0.1:8000/` to inspect dashboard, tasks, epics, and tickets.
 
+## Dependency rules
+
+Task dependencies are modeled with `depends_on` and are only valid for tasks within the same epic.
+
+Epic dependencies are also supported with `depends_on`, and they are only valid for epics that belong to the same task.
+
+Ticket dependencies are modeled with `depends_on` and are only valid for tickets that belong to the same task.
+
+A dependency graph that references missing entities or creates a cycle is rejected during validation.
+
+When no dependencies are present, the next actionable ticket is chosen by the lowest numbered epic, then the lowest numbered task in that epic, then the lowest numbered ticket in that task.
+
 ## End-to-End Workflow
 
 1. Create a task.

@@ -16,6 +16,7 @@ def make_epic(epic_id: str = "EPIC-001") -> Epic:
         status="open",
         description="Epic description",
         acceptance_criteria=["Epic criterion one"],
+        depends_on=[],
     )
 
 

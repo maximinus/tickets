@@ -18,7 +18,6 @@ TICKET_REQUIRED_FIELDS = [
     "epic",
     "title",
     "status",
-    "depends_on",
     "description",
     "acceptance_criteria",
     "out_of_scope",
@@ -42,6 +41,7 @@ class TicketRepository:
         )
         tasks: list[Task] = []
         for task_dict in task_dicts:
+            depends_on = require_string_list(task_dict, "depends_on", "task")
             acceptance_criteria = require_string_list(
                 task_dict,
                 "acceptance_criteria",
@@ -53,6 +53,7 @@ class TicketRepository:
                 status=require_string(task_dict, "status", "task"),
                 description=require_string(task_dict, "description", "task"),
                 acceptance_criteria=acceptance_criteria,
+                depends_on=depends_on,
             )
             tasks.append(task)
         ensure_unique_ids([task.id for task in tasks], "task")
@@ -66,6 +67,7 @@ class TicketRepository:
         )
         epics: list[Epic] = []
         for epic_dict in epic_dicts:
+            depends_on = require_string_list(epic_dict, "depends_on", "epic")
             acceptance_criteria = require_string_list(
                 epic_dict,
                 "acceptance_criteria",
@@ -78,6 +80,7 @@ class TicketRepository:
                 status=require_string(epic_dict, "status", "epic"),
                 description=require_string(epic_dict, "description", "epic"),
                 acceptance_criteria=acceptance_criteria,
+                depends_on=depends_on,
             )
             epics.append(epic)
         ensure_unique_ids([epic.id for epic in epics], "epic")
@@ -179,6 +182,9 @@ def require_optional_string(entity_dict: dict[str, Any], field_name: str, entity
 
 
 def require_string_list(entity_dict: dict[str, Any], field_name: str, entity_name: str) -> list[str]:
+    if field_name not in entity_dict:
+        return []
+
     field_value = entity_dict[field_name]
     if not isinstance(field_value, list):
         raise RepositoryError(f"Field '{field_name}' in {entity_name} must be a list")

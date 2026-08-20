@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -8,6 +8,7 @@ class Task:
     status: str
     description: str
     acceptance_criteria: list[str]
+    depends_on: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -18,6 +19,7 @@ class Epic:
     status: str
     description: str
     acceptance_criteria: list[str]
+    depends_on: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
