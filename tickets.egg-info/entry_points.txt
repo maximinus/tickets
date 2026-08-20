@@ -1,0 +1,2 @@
+[console_scripts]
+tickets = tickets.cli:main
