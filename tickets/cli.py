@@ -173,14 +173,22 @@ def handle_validate_command(root_path: Path, output_stream: TextIO) -> int:
 
 def handle_next_command(root_path: Path, output_stream: TextIO) -> int:
     repository = TicketRepository(root_path)
-    _, _, tickets = repository.load_all()
+    tasks, epics, tickets = repository.load_all()
     next_ticket = find_next_actionable_ticket(tickets)
 
     if next_ticket is None:
         print("No actionable tickets found.", file=output_stream)
         return SUCCESS_EXIT_CODE
 
-    print(f"{next_ticket.id}: {next_ticket.title}", file=output_stream)
+    tasks_by_id = {task.id: task for task in tasks}
+    epics_by_id = {epic.id: epic for epic in epics}
+    epic = epics_by_id.get(next_ticket.epic)
+    task = tasks_by_id.get(epic.task) if epic is not None else None
+
+    if epic is not None and task is not None:
+        print(f"{epic.id} -> {task.id} -> {next_ticket.id}: {next_ticket.title}", file=output_stream)
+    else:
+        print(f"{next_ticket.id}: {next_ticket.title}", file=output_stream)
     return SUCCESS_EXIT_CODE
 
 

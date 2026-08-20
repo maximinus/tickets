@@ -301,7 +301,7 @@ class CliTests(unittest.TestCase):
             )
 
             self.assertEqual(exit_code, 0)
-            self.assertIn("T-001", standard_output.getvalue())
+            self.assertIn("EPIC-001 -> TASK-001 -> T-001: Ticket T-001", standard_output.getvalue())
             self.assertEqual(standard_error.getvalue(), "")
 
     def test_next_command_with_no_actionable_ticket_shows_message(self) -> None:
