@@ -55,6 +55,9 @@ def build_parser() -> argparse.ArgumentParser:
     set_status_parser.add_argument("ticket_id")
     set_status_parser.add_argument("status", choices=sorted(TICKET_ALLOWED_STATUSES))
 
+    delete_parser = subparsers.add_parser("delete", help="Delete a ticket, task, or epic")
+    delete_parser.add_argument("entity_id")
+
     subparsers.add_parser("upgrade", help="Upgrade ticket metadata to current schema defaults")
 
     serve_parser = subparsers.add_parser("serve", help="Serve the read-only local web interface")
@@ -109,6 +112,8 @@ def run_cli(
                 parsed_arguments.status,
                 output_stream,
             )
+        if parsed_arguments.command == "delete":
+            return handle_delete_command(repository_root_path, parsed_arguments.entity_id, output_stream, error_stream)
         if parsed_arguments.command == "upgrade":
             return handle_upgrade_command(repository_root_path, output_stream)
         if parsed_arguments.command == "serve":
@@ -275,6 +280,29 @@ def handle_set_status_command(root_path: Path, ticket_id: str, status: str, outp
         print(message, file=output_stream)
     if not update_messages:
         print(f"{ticket_id}: status unchanged", file=output_stream)
+    return SUCCESS_EXIT_CODE
+
+
+def handle_delete_command(
+    root_path: Path,
+    entity_id: str,
+    output_stream: TextIO,
+    error_stream: TextIO,
+) -> int:
+    try:
+        deleted_ids = TicketRepository(root_path).delete_entity(entity_id)
+    except RepositoryError as error:
+        print(f"Error: {error}", file=error_stream)
+        return ERROR_EXIT_CODE
+
+    if not deleted_ids:
+        print(f"Deleted {entity_id}", file=output_stream)
+        return SUCCESS_EXIT_CODE
+
+    if len(deleted_ids) == 1:
+        print(f"Deleted {deleted_ids[0]}", file=output_stream)
+    else:
+        print(f"Deleted {', '.join(deleted_ids)}", file=output_stream)
     return SUCCESS_EXIT_CODE
 
 

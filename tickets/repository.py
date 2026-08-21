@@ -129,6 +129,120 @@ class TicketRepository:
             raise RepositoryError(str(error)) from error
         return tasks, epics, tickets
 
+    def delete_entity(self, entity_id: str) -> list[str]:
+        tasks, epics, tickets = self.load_all()
+
+        task_ids_by_id = {task.id: task for task in tasks}
+        epic_ids_by_id = {epic.id: epic for epic in epics}
+        ticket_ids_by_id = {ticket.id: ticket for ticket in tickets}
+
+        deleted_ids: set[str] = set()
+
+        if entity_id in ticket_ids_by_id:
+            deleted_ids.add(entity_id)
+        elif entity_id in task_ids_by_id:
+            task = task_ids_by_id[entity_id]
+            deleted_ids.add(task.id)
+            related_epic_ids = {epic.id for epic in epics if epic.task == task.id}
+            for epic_id in related_epic_ids:
+                deleted_ids.add(epic_id)
+                for ticket in tickets:
+                    if ticket.epic == epic_id:
+                        deleted_ids.add(ticket.id)
+        elif entity_id in epic_ids_by_id:
+            epic = epic_ids_by_id[entity_id]
+            related_task_ids = {task.id for task in tasks if task.id == epic.task}
+            related_epic_ids = {current_epic.id for current_epic in epics if current_epic.task in related_task_ids}
+            deleted_ids.add(epic.id)
+            deleted_ids.update(related_task_ids)
+            deleted_ids.update(related_epic_ids)
+            for candidate_epic in epics:
+                if candidate_epic.task in related_task_ids:
+                    for ticket in tickets:
+                        if ticket.epic == candidate_epic.id:
+                            deleted_ids.add(ticket.id)
+        else:
+            raise RepositoryError(f"Entity not found: {entity_id}")
+
+        for ticket_id in sorted(deleted_ids):
+            ticket_path = self.tickets_path / TICKETS_DIR_NAME / f"{ticket_id}.yaml"
+            if ticket_path.exists():
+                ticket_path.unlink()
+
+        for task_id in sorted({task_id for task_id in deleted_ids if task_id in task_ids_by_id}):
+            task_path = self.tickets_path / TASKS_DIR_NAME / f"{task_id}.yaml"
+            if task_path.exists():
+                task_path.unlink()
+
+        for epic_id in sorted({epic_id for epic_id in deleted_ids if epic_id in epic_ids_by_id}):
+            epic_path = self.tickets_path / EPICS_DIR_NAME / f"{epic_id}.yaml"
+            if epic_path.exists():
+                epic_path.unlink()
+
+        remove_deleted_dependencies(self.root_path, deleted_ids)
+        remaining_tasks, remaining_epics, remaining_tickets = self.load_all()
+        update_statuses_after_delete(self.root_path, remaining_tasks, remaining_epics, remaining_tickets)
+        return sorted(deleted_ids)
+
+
+def remove_deleted_dependencies(root_path: Path, deleted_ids: set[str]) -> None:
+    tickets_root = root_path / ".tickets"
+    for directory_name in (TASKS_DIR_NAME, EPICS_DIR_NAME, TICKETS_DIR_NAME):
+        entity_directory = tickets_root / directory_name
+        if not entity_directory.exists():
+            continue
+        for file_path in sorted(entity_directory.glob(YAML_FILE_PATTERN)):
+            file_data = read_yaml_file(file_path)
+            if not isinstance(file_data, dict):
+                continue
+            if "depends_on" not in file_data:
+                continue
+            file_data["depends_on"] = [
+                dependency_id for dependency_id in file_data["depends_on"] if dependency_id not in deleted_ids
+            ]
+            with file_path.open("w", encoding="utf-8") as file_handle:
+                yaml.safe_dump(file_data, file_handle, sort_keys=False)
+
+
+def update_statuses_after_delete(root_path: Path, tasks: list[Task], epics: list[Epic], tickets: list[Ticket]) -> None:
+    from tickets.status_engine import build_effective_entities, build_underlying_entities
+
+    effective_tasks, effective_epics, effective_tickets = build_effective_entities(tasks, epics, tickets)
+    effective_tasks_by_id = {task.id: task for task in effective_tasks}
+    effective_epics_by_id = {epic.id: epic for epic in effective_epics}
+    effective_tickets_by_id = {ticket.id: ticket for ticket in effective_tickets}
+
+    underlying_tasks, underlying_epics = build_underlying_entities(tasks, epics, tickets)
+    underlying_tasks_by_id = {task.id: task for task in underlying_tasks}
+    underlying_epics_by_id = {epic.id: epic for epic in underlying_epics}
+
+    for ticket in tickets:
+        effective_ticket = effective_tickets_by_id[ticket.id]
+        if ticket.status != effective_ticket.status:
+            write_status_update(root_path, TICKETS_DIR_NAME, ticket.id, effective_ticket.status)
+
+    for task in tasks:
+        underlying_task = underlying_tasks_by_id[task.id]
+        if task.status != underlying_task.status:
+            write_status_update(root_path, TASKS_DIR_NAME, task.id, underlying_task.status)
+
+    for epic in epics:
+        underlying_epic = underlying_epics_by_id[epic.id]
+        if epic.status != underlying_epic.status:
+            write_status_update(root_path, EPICS_DIR_NAME, epic.id, underlying_epic.status)
+
+
+def write_status_update(root_path: Path, directory_name: str, entity_id: str, status: str) -> None:
+    file_path = root_path / ".tickets" / directory_name / f"{entity_id}.yaml"
+    if not file_path.exists():
+        return
+    file_data = read_yaml_file(file_path)
+    if not isinstance(file_data, dict):
+        raise RepositoryError(f"Expected mapping in entity file: {file_path}")
+    file_data["status"] = status
+    with file_path.open("w", encoding="utf-8") as file_handle:
+        yaml.safe_dump(file_data, file_handle, sort_keys=False)
+
 
 def load_entity_dicts(entity_directory: Path, required_fields: list[str], entity_name: str) -> list[dict[str, Any]]:
     if not entity_directory.exists():

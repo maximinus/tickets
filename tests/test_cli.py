@@ -171,6 +171,13 @@ class CliTests(unittest.TestCase):
         self.assertEqual(parsed_arguments.ticket_id, "T-001")
         self.assertEqual(parsed_arguments.status, "closed")
 
+    def test_argument_parsing_for_delete_command(self) -> None:
+        parser = build_parser()
+        parsed_arguments = parser.parse_args(["delete", "T-001"])
+
+        self.assertEqual(parsed_arguments.command, "delete")
+        self.assertEqual(parsed_arguments.entity_id, "T-001")
+
     def test_argument_parsing_for_upgrade_command(self) -> None:
         parser = build_parser()
         parsed_arguments = parser.parse_args(["upgrade"])
@@ -593,6 +600,76 @@ class CliTests(unittest.TestCase):
             self.assertEqual(exit_code, 1)
             self.assertEqual(standard_output.getvalue(), "")
             self.assertIn("only supported for tickets", standard_error.getvalue())
+
+    def test_delete_ticket_removes_dependency_and_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_directory_string:
+            root_path = Path(temp_directory_string)
+            write_sample_task(root_path)
+            write_sample_epic(root_path)
+            write_sample_ticket(root_path, ticket_id="T-001", status="open", depends_on=[])
+            write_sample_ticket(root_path, ticket_id="T-002", status="open", depends_on=["T-001"])
+
+            standard_output = StringIO()
+            standard_error = StringIO()
+            exit_code = run_cli(
+                ["delete", "T-001"],
+                standard_output=standard_output,
+                standard_error=standard_error,
+                root_path=root_path,
+            )
+
+            self.assertEqual(exit_code, 0)
+            self.assertIn("Deleted T-001", standard_output.getvalue())
+            self.assertEqual(standard_error.getvalue(), "")
+            self.assertFalse((root_path / ".tickets" / "tickets" / "T-001.yaml").exists())
+
+            remaining_ticket_text = (root_path / ".tickets" / "tickets" / "T-002.yaml").read_text(encoding="utf-8")
+            self.assertNotIn("T-001", remaining_ticket_text)
+
+    def test_delete_task_removes_child_tickets(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_directory_string:
+            root_path = Path(temp_directory_string)
+            write_sample_task(root_path)
+            write_sample_epic(root_path)
+            write_sample_ticket(root_path, ticket_id="T-001", status="open", depends_on=[])
+            write_sample_ticket(root_path, ticket_id="T-002", status="open", depends_on=[])
+
+            standard_output = StringIO()
+            standard_error = StringIO()
+            exit_code = run_cli(
+                ["delete", "TASK-001"],
+                standard_output=standard_output,
+                standard_error=standard_error,
+                root_path=root_path,
+            )
+
+            self.assertEqual(exit_code, 0)
+            self.assertFalse((root_path / ".tickets" / "tasks" / "TASK-001.yaml").exists())
+            self.assertFalse((root_path / ".tickets" / "tickets" / "T-001.yaml").exists())
+            self.assertFalse((root_path / ".tickets" / "tickets" / "T-002.yaml").exists())
+
+    def test_delete_epic_removes_tasks_and_tickets(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_directory_string:
+            root_path = Path(temp_directory_string)
+            write_sample_task(root_path)
+            write_sample_epic(root_path)
+            write_sample_ticket(root_path, ticket_id="T-001", status="open", depends_on=[])
+            write_sample_ticket(root_path, ticket_id="T-002", status="open", depends_on=[])
+
+            standard_output = StringIO()
+            standard_error = StringIO()
+            exit_code = run_cli(
+                ["delete", "EPIC-001"],
+                standard_output=standard_output,
+                standard_error=standard_error,
+                root_path=root_path,
+            )
+
+            self.assertEqual(exit_code, 0)
+            self.assertFalse((root_path / ".tickets" / "epics" / "EPIC-001.yaml").exists())
+            self.assertFalse((root_path / ".tickets" / "tasks" / "TASK-001.yaml").exists())
+            self.assertFalse((root_path / ".tickets" / "tickets" / "T-001.yaml").exists())
+            self.assertFalse((root_path / ".tickets" / "tickets" / "T-002.yaml").exists())
 
 
 def write_sample_task(root_path: Path) -> None:
