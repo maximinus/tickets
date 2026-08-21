@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tickets"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.0"
+description = "Tickets system for LLMs"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
