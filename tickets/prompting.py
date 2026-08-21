@@ -1,9 +1,8 @@
-from dataclasses import asdict
 from pathlib import Path
 
 import yaml
 
-from tickets.models import Epic, Ticket
+from tickets.models import Epic, Task, Ticket
 from tickets.repository import RepositoryError, TicketRepository
 from tickets.status_engine import build_effective_entities
 
@@ -21,10 +20,12 @@ Respect the out_of_scope section."""
 
 def generate_prompt_for_ticket_id(
     ticket_id: str,
+    tasks: list[Task],
     epics: list[Epic],
     tickets: list[Ticket],
     current_working_directory: Path | None = None,
 ) -> str:
+    task_by_id = {task.id: task for task in tasks}
     ticket_by_id = {ticket.id: ticket for ticket in tickets}
     epic_by_id = {epic.id: epic for epic in epics}
 
@@ -36,15 +37,19 @@ def generate_prompt_for_ticket_id(
     if epic is None:
         raise RepositoryError(f"Related epic not found for ticket '{ticket_id}': {ticket.epic}")
 
+    task = task_by_id.get(epic.task)
+    if task is None:
+        raise RepositoryError(f"Related task not found for ticket '{ticket_id}': {epic.task}")
+
     worker_instructions = resolve_worker_instructions(current_working_directory)
-    return build_worker_prompt(epic, ticket, worker_instructions)
+    return build_worker_prompt(task, epic, ticket, worker_instructions)
 
 
 def generate_prompt_for_ticket_id_from_repository(root_path: Path, ticket_id: str) -> str:
     repository = TicketRepository(root_path)
     tasks, epics, tickets = repository.load_all()
-    _, effective_epics, effective_tickets = build_effective_entities(tasks, epics, tickets)
-    return generate_prompt_for_ticket_id(ticket_id, effective_epics, effective_tickets)
+    effective_tasks, effective_epics, effective_tickets = build_effective_entities(tasks, epics, tickets)
+    return generate_prompt_for_ticket_id(ticket_id, effective_tasks, effective_epics, effective_tickets)
 
 
 def resolve_worker_instructions(current_working_directory: Path | None = None) -> str:
@@ -76,13 +81,38 @@ def read_worker_instructions_from_path(worker_prompt_path: Path) -> str | None:
     return worker_prompt_path.read_text(encoding="utf-8").strip()
 
 
-def build_worker_prompt(epic: Epic, ticket: Ticket, worker_instructions: str) -> str:
-    epic_text = format_entity_as_yaml(epic)
-    ticket_text = format_entity_as_yaml(ticket)
+def build_worker_prompt(task: Task, epic: Epic, ticket: Ticket, worker_instructions: str) -> str:
+    epic_text = format_epic_for_prompt(epic)
+    task_text = format_task_for_prompt(task)
+    ticket_text = format_ticket_for_prompt(ticket)
 
-    return f"{worker_instructions}\n\nEpic:\n{epic_text}\n\nTicket:\n{ticket_text}"
+    return f"{worker_instructions}\n\nEpic:\n{epic_text}\n\nTask:\n{task_text}\n\nTicket:\n{ticket_text}"
 
 
-def format_entity_as_yaml(entity: Epic | Ticket) -> str:
-    entity_dict = asdict(entity)
-    return yaml.safe_dump(entity_dict, sort_keys=False, allow_unicode=False).strip()
+def format_epic_for_prompt(epic: Epic) -> str:
+    epic_dict = {
+        "id": epic.id,
+        "title": epic.title,
+        "description": epic.description,
+    }
+    return yaml.safe_dump(epic_dict, sort_keys=False, allow_unicode=False).strip()
+
+
+def format_task_for_prompt(task: Task) -> str:
+    task_dict = {
+        "id": task.id,
+        "title": task.title,
+        "description": task.description,
+    }
+    return yaml.safe_dump(task_dict, sort_keys=False, allow_unicode=False).strip()
+
+
+def format_ticket_for_prompt(ticket: Ticket) -> str:
+    ticket_dict = {
+        "id": ticket.id,
+        "title": ticket.title,
+        "description": ticket.description,
+        "acceptance_criteria": ticket.acceptance_criteria,
+        "out_of_scope": ticket.out_of_scope,
+    }
+    return yaml.safe_dump(ticket_dict, sort_keys=False, allow_unicode=False).strip()

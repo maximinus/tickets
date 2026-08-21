@@ -222,8 +222,8 @@ def handle_next_command(root_path: Path, output_stream: TextIO) -> int:
 def handle_prompt_command(root_path: Path, ticket_id: str, output_stream: TextIO) -> int:
     repository = TicketRepository(root_path)
     tasks, epics, tickets = repository.load_all()
-    _, effective_epics, effective_tickets = build_effective_entities(tasks, epics, tickets)
-    prompt_text = generate_prompt_for_ticket_id(ticket_id, effective_epics, effective_tickets)
+    effective_tasks, effective_epics, effective_tickets = build_effective_entities(tasks, epics, tickets)
+    prompt_text = generate_prompt_for_ticket_id(ticket_id, effective_tasks, effective_epics, effective_tickets)
     print(prompt_text, file=output_stream)
     return SUCCESS_EXIT_CODE
 
@@ -231,14 +231,19 @@ def handle_prompt_command(root_path: Path, ticket_id: str, output_stream: TextIO
 def handle_prompt_next_command(root_path: Path, output_stream: TextIO) -> int:
     repository = TicketRepository(root_path)
     tasks, epics, tickets = repository.load_all()
-    _, effective_epics, effective_tickets = build_effective_entities(tasks, epics, tickets)
+    effective_tasks, effective_epics, effective_tickets = build_effective_entities(tasks, epics, tickets)
     next_ticket = find_next_actionable_ticket(effective_tickets)
 
     if next_ticket is None:
         print("No actionable tickets found.", file=output_stream)
         return SUCCESS_EXIT_CODE
 
-    prompt_text = generate_prompt_for_ticket_id(next_ticket.id, effective_epics, effective_tickets)
+    prompt_text = generate_prompt_for_ticket_id(
+        next_ticket.id,
+        effective_tasks,
+        effective_epics,
+        effective_tickets,
+    )
     print(prompt_text, file=output_stream)
     return SUCCESS_EXIT_CODE
 

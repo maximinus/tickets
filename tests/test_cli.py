@@ -378,7 +378,12 @@ class CliTests(unittest.TestCase):
             self.assertEqual(exit_code, 0)
             self.assertIn("You are working on exactly one ticket.", standard_output.getvalue())
             self.assertIn("Epic:", standard_output.getvalue())
+            self.assertIn("Task:", standard_output.getvalue())
             self.assertIn("Ticket:", standard_output.getvalue())
+            self.assertIn("description: Epic description", standard_output.getvalue())
+            self.assertIn("description: Task description", standard_output.getvalue())
+            self.assertIn("description: Ticket description", standard_output.getvalue())
+            self.assertNotIn("status: open", standard_output.getvalue())
             self.assertEqual(standard_error.getvalue(), "")
 
     def test_prompt_command_with_invalid_ticket_id_shows_error(self) -> None:
@@ -420,7 +425,9 @@ class CliTests(unittest.TestCase):
 
             self.assertEqual(exit_code, 0)
             self.assertIn("You are working on exactly one ticket.", standard_output.getvalue())
+            self.assertIn("Task:", standard_output.getvalue())
             self.assertIn("id: T-001", standard_output.getvalue())
+            self.assertNotIn("depends_on: []", standard_output.getvalue())
             self.assertEqual(standard_error.getvalue(), "")
 
     def test_prompt_next_with_no_actionable_ticket_shows_message(self) -> None:

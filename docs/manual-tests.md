@@ -127,9 +127,14 @@ python -m tickets prompt T-001
 Expected output includes:
 - `You are working on exactly one ticket.`
 - `Epic:`
+- `Task:`
 - `Ticket:`
 - `id: EPIC-001`
+- `id: TASK-001`
 - `id: T-001`
+- `description: Example epic`
+- `description: Task description`
+- `acceptance_criteria:`
 
 ### Test A6: Prompt-next returns prompt for the next actionable ticket
 
@@ -139,6 +144,8 @@ python -m tickets prompt-next
 
 Expected output includes:
 - `You are working on exactly one ticket.`
+- `Epic:`
+- `Task:`
 - `Ticket:`
 - `id: T-001`
 

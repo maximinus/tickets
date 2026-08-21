@@ -88,13 +88,16 @@ class IntegrationTests(unittest.TestCase):
 
             first_prompt_exit, first_prompt_output, first_prompt_error = run_command(root_path, ["prompt-next"])
             self.assertEqual(first_prompt_exit, 0)
+            self.assertIn("Task:", first_prompt_output)
             self.assertIn("id: T-001", first_prompt_output)
+            self.assertNotIn("depends_on:", first_prompt_output)
             self.assertEqual(first_prompt_error, "")
 
             set_ticket_status(root_path, "T-001", "closed")
 
             second_prompt_exit, second_prompt_output, second_prompt_error = run_command(root_path, ["prompt-next"])
             self.assertEqual(second_prompt_exit, 0)
+            self.assertIn("Task:", second_prompt_output)
             self.assertIn("id: T-002", second_prompt_output)
             self.assertEqual(second_prompt_error, "")
 
