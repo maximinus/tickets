@@ -66,7 +66,7 @@ class PromptingTests(unittest.TestCase):
 
         self.assertIn("id: EPIC-123", prompt_text)
         self.assertIn("title: Build the minimal ticket system", prompt_text)
-        self.assertIn("description: Epic description", prompt_text)
+        self.assertIn("description:\nEpic description", prompt_text)
         self.assertNotIn("task: TASK-001", prompt_text)
         self.assertNotIn("status: open", prompt_text)
         self.assertNotIn("- Epic criterion one", prompt_text)
@@ -80,7 +80,7 @@ class PromptingTests(unittest.TestCase):
 
         self.assertIn("Task:\nid: TASK-888", prompt_text)
         self.assertIn("title: Build the ticket workflow", prompt_text)
-        self.assertIn("description: Task description", prompt_text)
+        self.assertIn("description:\nTask description", prompt_text)
         self.assertNotIn("acceptance_criteria:\n- Task criterion one", prompt_text)
 
     def test_prompt_includes_ticket_content(self) -> None:
@@ -92,13 +92,35 @@ class PromptingTests(unittest.TestCase):
 
         self.assertIn("id: T-777", prompt_text)
         self.assertIn("title: Load YAML files", prompt_text)
-        self.assertIn("description: Ticket description", prompt_text)
+        self.assertIn("description:\nTicket description", prompt_text)
         self.assertIn("acceptance_criteria:", prompt_text)
         self.assertIn("out_of_scope:", prompt_text)
         self.assertIn("- Out of scope item", prompt_text)
         self.assertNotIn("epic: EPIC-001", prompt_text)
         self.assertNotIn("depends_on: []", prompt_text)
         self.assertNotIn("completion_notes", prompt_text)
+
+    def test_prompt_normalizes_escaped_description_text(self) -> None:
+        tasks = [make_task()]
+        epics = [make_epic()]
+        tickets = [
+            Ticket(
+                id="T-777",
+                epic="EPIC-001",
+                title="Load YAML files",
+                status="open",
+                depends_on=[],
+                description='"First line\\nSecond line\\n\\nThird line with slash\\"',
+                acceptance_criteria=["Ticket criterion one"],
+                out_of_scope=["Out of scope item"],
+            )
+        ]
+
+        prompt_text = generate_prompt_for_ticket_id("T-777", tasks, epics, tickets)
+
+        self.assertIn("description:\nFirst line\nSecond line\n\nThird line with slash", prompt_text)
+        self.assertNotIn("\\n", prompt_text)
+        self.assertNotIn("\\", prompt_text)
 
     def test_prompt_includes_fixed_instructions(self) -> None:
         tasks = [make_task()]

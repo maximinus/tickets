@@ -1,7 +1,5 @@
 from pathlib import Path
 
-import yaml
-
 from tickets.models import Epic, Task, Ticket
 from tickets.repository import RepositoryError, TicketRepository
 from tickets.status_engine import build_effective_entities
@@ -90,29 +88,54 @@ def build_worker_prompt(task: Task, epic: Epic, ticket: Ticket, worker_instructi
 
 
 def format_epic_for_prompt(epic: Epic) -> str:
-    epic_dict = {
-        "id": epic.id,
-        "title": epic.title,
-        "description": epic.description,
-    }
-    return yaml.safe_dump(epic_dict, sort_keys=False, allow_unicode=False).strip()
+    lines = [
+        f"id: {epic.id}",
+        f"title: {epic.title}",
+        format_description_field(epic.description),
+    ]
+    return "\n".join(lines)
 
 
 def format_task_for_prompt(task: Task) -> str:
-    task_dict = {
-        "id": task.id,
-        "title": task.title,
-        "description": task.description,
-    }
-    return yaml.safe_dump(task_dict, sort_keys=False, allow_unicode=False).strip()
+    lines = [
+        f"id: {task.id}",
+        f"title: {task.title}",
+        format_description_field(task.description),
+    ]
+    return "\n".join(lines)
 
 
 def format_ticket_for_prompt(ticket: Ticket) -> str:
-    ticket_dict = {
-        "id": ticket.id,
-        "title": ticket.title,
-        "description": ticket.description,
-        "acceptance_criteria": ticket.acceptance_criteria,
-        "out_of_scope": ticket.out_of_scope,
-    }
-    return yaml.safe_dump(ticket_dict, sort_keys=False, allow_unicode=False).strip()
+    lines = [
+        f"id: {ticket.id}",
+        f"title: {ticket.title}",
+        format_description_field(ticket.description),
+        format_string_list_field("acceptance_criteria", ticket.acceptance_criteria),
+        format_string_list_field("out_of_scope", ticket.out_of_scope),
+    ]
+    return "\n".join(lines)
+
+
+def format_description_field(description_value: str) -> str:
+    normalized_description = normalize_description_text(description_value)
+    return f"description:\n{normalized_description}"
+
+
+def format_string_list_field(field_name: str, values: list[str]) -> str:
+    if not values:
+        return f"{field_name}:\n- None"
+
+    list_items = [f"- {value}" for value in values]
+    return "\n".join([f"{field_name}:", *list_items])
+
+
+def normalize_description_text(description_value: str) -> str:
+    normalized_description = description_value.replace("\r\n", "\n").replace("\r", "\n")
+    normalized_description = normalized_description.replace("\\n", "\n")
+    normalized_description = normalized_description.replace("\\", "")
+
+    cleaned_description = normalized_description.strip()
+    if cleaned_description.startswith('"') and cleaned_description.endswith('"') and len(cleaned_description) >= 2:
+        cleaned_description = cleaned_description[1:-1].strip()
+
+    return cleaned_description if cleaned_description else "None"

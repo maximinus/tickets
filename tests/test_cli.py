@@ -380,9 +380,9 @@ class CliTests(unittest.TestCase):
             self.assertIn("Epic:", standard_output.getvalue())
             self.assertIn("Task:", standard_output.getvalue())
             self.assertIn("Ticket:", standard_output.getvalue())
-            self.assertIn("description: Epic description", standard_output.getvalue())
-            self.assertIn("description: Task description", standard_output.getvalue())
-            self.assertIn("description: Ticket description", standard_output.getvalue())
+            self.assertIn("description:\nEpic description", standard_output.getvalue())
+            self.assertIn("description:\nTask description", standard_output.getvalue())
+            self.assertIn("description:\nTicket description", standard_output.getvalue())
             self.assertNotIn("status: open", standard_output.getvalue())
             self.assertEqual(standard_error.getvalue(), "")
 
