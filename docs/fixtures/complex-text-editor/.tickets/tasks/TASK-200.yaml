@@ -1,6 +1,7 @@
 id: TASK-200
 title: Build advanced productivity features
 status: open
+depends_on: []
 description: |
   Add high-value productivity capabilities for power users, including
   syntax highlighting, search and replace, and split panes.

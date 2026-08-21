@@ -1,6 +1,7 @@
 id: TASK-001
 title: LLM-oriented ticket system
 status: open
+depends_on: []
 description: |
   Create a small file-based ticket system for LLM-assisted programming work.
 acceptance_criteria:

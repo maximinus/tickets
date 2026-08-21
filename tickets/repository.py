@@ -11,13 +11,14 @@ EPICS_DIR_NAME = "epics"
 TICKETS_DIR_NAME = "tickets"
 YAML_FILE_PATTERN = "*.yaml"
 
-TASK_REQUIRED_FIELDS = ["id", "title", "status", "description", "acceptance_criteria"]
-EPIC_REQUIRED_FIELDS = ["id", "task", "title", "status", "description", "acceptance_criteria"]
+TASK_REQUIRED_FIELDS = ["id", "title", "status", "depends_on", "description", "acceptance_criteria"]
+EPIC_REQUIRED_FIELDS = ["id", "task", "title", "status", "depends_on", "description", "acceptance_criteria"]
 TICKET_REQUIRED_FIELDS = [
     "id",
     "epic",
     "title",
     "status",
+    "depends_on",
     "description",
     "acceptance_criteria",
     "out_of_scope",

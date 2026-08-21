@@ -5,8 +5,6 @@ import shutil
 import tempfile
 import unittest
 
-import yaml
-
 from tickets.cli import run_cli
 from tickets.web import HTTP_OK, build_web_response
 
@@ -16,6 +14,7 @@ epic:
   task: TASK-001
   title: Build the minimal ticket system
   status: open
+  depends_on: []
   description: |
     Build loading, validation, sequencing, prompt generation, and web inspection.
   acceptance_criteria:
@@ -115,6 +114,7 @@ class IntegrationTests(unittest.TestCase):
 id: TASK-001
 title: Web integration task
 status: open
+depends_on: []
 description: Task description
 acceptance_criteria:
   - One criterion
@@ -173,6 +173,7 @@ acceptance_criteria:
 id: TASK-050
 title: Existing task
 status: open
+depends_on: []
 description: Existing task description
 acceptance_criteria:
   - Existing criterion
@@ -216,10 +217,9 @@ def run_command(root_path: Path, arguments: list[str]) -> tuple[int, str, str]:
 
 
 def set_ticket_status(root_path: Path, ticket_id: str, new_status: str) -> None:
-    ticket_path = root_path / ".tickets" / "tickets" / f"{ticket_id}.yaml"
-    ticket_data = yaml.safe_load(ticket_path.read_text(encoding="utf-8"))
-    ticket_data["status"] = new_status
-    ticket_path.write_text(yaml.safe_dump(ticket_data, sort_keys=False), encoding="utf-8")
+  exit_code, _, error_output = run_command(root_path, ["set-status", ticket_id, new_status])
+  if exit_code != 0:
+    raise AssertionError(f"set-status failed for {ticket_id}: {error_output}")
 
 
 def hash_file(file_path: Path) -> str:

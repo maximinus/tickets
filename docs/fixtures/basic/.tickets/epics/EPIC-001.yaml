@@ -2,6 +2,7 @@ id: EPIC-001
 task: TASK-001
 title: Build the minimal ticket system
 status: open
+depends_on: []
 description: |
   Build loading, validation, sequencing, and prompt generation.
 acceptance_criteria:

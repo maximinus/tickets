@@ -1,6 +1,7 @@
 id: TASK-001
 title: Broken sample task
 status: open
+depends_on: []
 description: |
   Fixture used to test validation failures.
 acceptance_criteria:

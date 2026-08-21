@@ -1,6 +1,8 @@
 from tickets.models import Epic, Task, Ticket
+from tickets.status_engine import build_underlying_entities
+from tickets.statuses import PARENT_ALLOWED_STATUSES, TICKET_ALLOWED_STATUSES
 
-ALLOWED_STATUS_VALUES = {"open", "in_progress", "blocked", "closed"}
+ALLOWED_STATUS_VALUES = TICKET_ALLOWED_STATUSES
 
 
 class ValidationError(Exception):
@@ -18,6 +20,7 @@ def validate_repository_data(tasks: list[Task], epics: list[Epic], tickets: list
     validate_task_dependency_same_epic(tasks, epics)
     validate_epic_dependency_same_task(epics)
     validate_ticket_dependency_same_task(tasks, epics, tickets)
+    validate_parent_statuses_match_children(tasks, epics, tickets)
     validate_task_dependency_cycles(tasks)
     validate_epic_dependency_cycles(epics)
     validate_ticket_dependency_cycles(tickets)
@@ -40,21 +43,51 @@ def validate_duplicate_ids_across_entities(tasks: list[Task], epics: list[Epic],
 
 def validate_status_values(tasks: list[Task], epics: list[Epic], tickets: list[Ticket]) -> None:
     for task in tasks:
-        validate_single_status(task.id, "task", task.status)
+        validate_single_parent_status(task.id, "task", task.status)
 
     for epic in epics:
-        validate_single_status(epic.id, "epic", epic.status)
+        validate_single_parent_status(epic.id, "epic", epic.status)
 
     for ticket in tickets:
-        validate_single_status(ticket.id, "ticket", ticket.status)
+        validate_single_ticket_status(ticket.id, "ticket", ticket.status)
 
 
-def validate_single_status(entity_id: str, entity_name: str, status_value: str) -> None:
-    if status_value not in ALLOWED_STATUS_VALUES:
-        allowed_values = ", ".join(sorted(ALLOWED_STATUS_VALUES))
+def validate_single_ticket_status(entity_id: str, entity_name: str, status_value: str) -> None:
+    if status_value not in TICKET_ALLOWED_STATUSES:
+        allowed_values = ", ".join(sorted(TICKET_ALLOWED_STATUSES))
         raise ValidationError(
             f"Invalid status '{status_value}' for {entity_name} '{entity_id}'. Allowed values: {allowed_values}"
         )
+
+
+def validate_single_parent_status(entity_id: str, entity_name: str, status_value: str) -> None:
+    if status_value not in PARENT_ALLOWED_STATUSES:
+        allowed_values = ", ".join(sorted(PARENT_ALLOWED_STATUSES))
+        raise ValidationError(
+            f"Invalid status '{status_value}' for {entity_name} '{entity_id}'. Allowed values: {allowed_values}"
+        )
+
+
+def validate_parent_statuses_match_children(tasks: list[Task], epics: list[Epic], tickets: list[Ticket]) -> None:
+    derived_tasks, derived_epics = build_underlying_entities(tasks, epics, tickets)
+    derived_tasks_by_id = {task.id: task for task in derived_tasks}
+    derived_epics_by_id = {epic.id: epic for epic in derived_epics}
+
+    for task in tasks:
+        derived_task = derived_tasks_by_id[task.id]
+        if task.status != derived_task.status:
+            raise ValidationError(
+                f"Task '{task.id}' has status '{task.status}' but derived status is '{derived_task.status}'"
+            )
+
+    for epic in epics:
+        derived_epic = derived_epics_by_id[epic.id]
+        if epic.status != derived_epic.status:
+            raise ValidationError(
+                f"Epic '{epic.id}' has status '{epic.status}' but derived status is '{derived_epic.status}'"
+            )
+
+
 
 
 def validate_epic_task_references(tasks: list[Task], epics: list[Epic]) -> None:

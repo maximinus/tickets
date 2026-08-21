@@ -5,6 +5,7 @@ import yaml
 
 from tickets.models import Epic, Ticket
 from tickets.repository import RepositoryError, TicketRepository
+from tickets.status_engine import build_effective_entities
 
 TICKETS_DIR_NAME = ".tickets"
 PROMPTS_DIR_NAME = "prompts"
@@ -41,8 +42,9 @@ def generate_prompt_for_ticket_id(
 
 def generate_prompt_for_ticket_id_from_repository(root_path: Path, ticket_id: str) -> str:
     repository = TicketRepository(root_path)
-    _, epics, tickets = repository.load_all()
-    return generate_prompt_for_ticket_id(ticket_id, epics, tickets)
+    tasks, epics, tickets = repository.load_all()
+    _, effective_epics, effective_tickets = build_effective_entities(tasks, epics, tickets)
+    return generate_prompt_for_ticket_id(ticket_id, effective_epics, effective_tickets)
 
 
 def resolve_worker_instructions(current_working_directory: Path | None = None) -> str:

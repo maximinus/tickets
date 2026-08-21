@@ -1,7 +1,8 @@
 id: EPIC-120
 task: TASK-100
 title: File system workflows and project explorer
-status: open
+status: in_progress
+depends_on: []
 description: |
   Add file and folder navigation, open and save flows, and project explorer
   interactions for multi-file editing.

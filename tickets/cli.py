@@ -13,6 +13,9 @@ from tickets.creation import (
 from tickets.prompting import generate_prompt_for_ticket_id
 from tickets.repository import RepositoryError, TicketRepository
 from tickets.sequencing import find_next_actionable_ticket
+from tickets.status_engine import build_effective_entities
+from tickets.status_updates import set_ticket_status
+from tickets.statuses import TICKET_ALLOWED_STATUSES
 from tickets.upgrade import upgrade_repository_metadata
 from tickets.web import serve_tickets_web
 
@@ -47,6 +50,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     import_plan_parser = subparsers.add_parser("import-plan", help="Import epic and tickets from a plan YAML file")
     import_plan_parser.add_argument("plan_file")
+
+    set_status_parser = subparsers.add_parser("set-status", help="Update status for a ticket")
+    set_status_parser.add_argument("ticket_id")
+    set_status_parser.add_argument("status", choices=sorted(TICKET_ALLOWED_STATUSES))
 
     subparsers.add_parser("upgrade", help="Upgrade ticket metadata to current schema defaults")
 
@@ -95,6 +102,13 @@ def run_cli(
         if parsed_arguments.command == "import-plan":
             plan_file_path = Path(parsed_arguments.plan_file)
             return handle_import_plan_command(repository_root_path, plan_file_path, output_stream)
+        if parsed_arguments.command == "set-status":
+            return handle_set_status_command(
+                repository_root_path,
+                parsed_arguments.ticket_id,
+                parsed_arguments.status,
+                output_stream,
+            )
         if parsed_arguments.command == "upgrade":
             return handle_upgrade_command(repository_root_path, output_stream)
         if parsed_arguments.command == "serve":
@@ -112,14 +126,15 @@ def run_cli(
 def handle_list_command(root_path: Path, entity_name: str | None, output_stream: TextIO) -> int:
     repository = TicketRepository(root_path)
     tasks, epics, tickets = repository.load_all()
+    effective_tasks, effective_epics, effective_tickets = build_effective_entities(tasks, epics, tickets)
 
     entity_map = {
-        "tasks": tasks,
-        "epics": epics,
-        "tickets": tickets,
+        "tasks": effective_tasks,
+        "epics": effective_epics,
+        "tickets": effective_tickets,
     }
     if entity_name is None:
-        print_grouped_list_by_epic(tasks, epics, tickets, output_stream)
+        print_grouped_list_by_epic(effective_tasks, effective_epics, effective_tickets, output_stream)
         return SUCCESS_EXIT_CODE
     else:
         entities = entity_map[entity_name]
@@ -154,8 +169,9 @@ def print_grouped_list_by_epic(tasks: list, epics: list, tickets: list, output_s
 def handle_show_command(root_path: Path, entity_id: str, output_stream: TextIO, error_stream: TextIO) -> int:
     repository = TicketRepository(root_path)
     tasks, epics, tickets = repository.load_all()
+    effective_tasks, effective_epics, effective_tickets = build_effective_entities(tasks, epics, tickets)
 
-    all_entities = [*tasks, *epics, *tickets]
+    all_entities = [*effective_tasks, *effective_epics, *effective_tickets]
     entity_by_id = {entity.id: entity for entity in all_entities}
     if entity_id not in entity_by_id:
         print(f"Error: Entity not found: {entity_id}", file=error_stream)
@@ -179,14 +195,15 @@ def handle_validate_command(root_path: Path, output_stream: TextIO) -> int:
 def handle_next_command(root_path: Path, output_stream: TextIO) -> int:
     repository = TicketRepository(root_path)
     tasks, epics, tickets = repository.load_all()
-    next_ticket = find_next_actionable_ticket(tickets, epics, tasks)
+    effective_tasks, effective_epics, effective_tickets = build_effective_entities(tasks, epics, tickets)
+    next_ticket = find_next_actionable_ticket(effective_tickets, effective_epics, effective_tasks)
 
     if next_ticket is None:
         print("No actionable tickets found.", file=output_stream)
         return SUCCESS_EXIT_CODE
 
-    tasks_by_id = {task.id: task for task in tasks}
-    epics_by_id = {epic.id: epic for epic in epics}
+    tasks_by_id = {task.id: task for task in effective_tasks}
+    epics_by_id = {epic.id: epic for epic in effective_epics}
     epic = epics_by_id.get(next_ticket.epic)
     task = tasks_by_id.get(epic.task) if epic is not None else None
 
@@ -199,22 +216,24 @@ def handle_next_command(root_path: Path, output_stream: TextIO) -> int:
 
 def handle_prompt_command(root_path: Path, ticket_id: str, output_stream: TextIO) -> int:
     repository = TicketRepository(root_path)
-    _, epics, tickets = repository.load_all()
-    prompt_text = generate_prompt_for_ticket_id(ticket_id, epics, tickets)
+    tasks, epics, tickets = repository.load_all()
+    _, effective_epics, effective_tickets = build_effective_entities(tasks, epics, tickets)
+    prompt_text = generate_prompt_for_ticket_id(ticket_id, effective_epics, effective_tickets)
     print(prompt_text, file=output_stream)
     return SUCCESS_EXIT_CODE
 
 
 def handle_prompt_next_command(root_path: Path, output_stream: TextIO) -> int:
     repository = TicketRepository(root_path)
-    _, epics, tickets = repository.load_all()
-    next_ticket = find_next_actionable_ticket(tickets)
+    tasks, epics, tickets = repository.load_all()
+    _, effective_epics, effective_tickets = build_effective_entities(tasks, epics, tickets)
+    next_ticket = find_next_actionable_ticket(effective_tickets)
 
     if next_ticket is None:
         print("No actionable tickets found.", file=output_stream)
         return SUCCESS_EXIT_CODE
 
-    prompt_text = generate_prompt_for_ticket_id(next_ticket.id, epics, tickets)
+    prompt_text = generate_prompt_for_ticket_id(next_ticket.id, effective_epics, effective_tickets)
     print(prompt_text, file=output_stream)
     return SUCCESS_EXIT_CODE
 
@@ -247,6 +266,15 @@ def handle_import_plan_command(root_path: Path, plan_file_path: Path, output_str
 
 def handle_serve_command(root_path: Path, host: str, port: int, output_stream: TextIO) -> int:
     serve_tickets_web(root_path, host=host, port=port, output_stream=output_stream)
+    return SUCCESS_EXIT_CODE
+
+
+def handle_set_status_command(root_path: Path, ticket_id: str, status: str, output_stream: TextIO) -> int:
+    update_messages = set_ticket_status(root_path, ticket_id, status)
+    for message in update_messages:
+        print(message, file=output_stream)
+    if not update_messages:
+        print(f"{ticket_id}: status unchanged", file=output_stream)
     return SUCCESS_EXIT_CODE
 
 

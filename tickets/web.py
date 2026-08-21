@@ -17,6 +17,7 @@ from tickets.rendering import (
     render_tickets_page,
 )
 from tickets.sequencing import find_next_actionable_ticket
+from tickets.status_engine import build_effective_entities
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
@@ -35,6 +36,7 @@ def build_web_response(root_path: Path, request_path: str) -> WebResponse:
     try:
         repository = TicketRepository(root_path)
         tasks, epics, tickets = repository.load_all()
+        tasks, epics, tickets = build_effective_entities(tasks, epics, tickets)
     except RepositoryError as error:
         error_html = render_error_page(str(error))
         return WebResponse(status_code=HTTP_SERVER_ERROR, html_body=error_html)

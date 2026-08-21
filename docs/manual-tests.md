@@ -403,3 +403,91 @@ Expected:
 - Dashboard loads
 - Next actionable panel shows completion message
 - Tasks, epics, and tickets pages render successfully
+
+## Test Set E: Ticket Status Command And Cascade Rules
+
+Load the ready-made valid fixture:
+
+```bash
+rm -rf .tickets
+cp -R docs/fixtures/basic/.tickets .tickets
+python -m tickets upgrade
+python -m tickets validate
+```
+
+Expected:
+- Validate prints `Validation passed.`
+
+### Test E1: Ticket-only status update command
+
+```bash
+python -m tickets set-status T-001 in_progress
+```
+
+Expected:
+- Exit code `0`
+- Output contains `T-001: status open -> in_progress`
+
+### Test E2: Parent task and epic statuses cascade from ticket changes
+
+After E1, run:
+
+```bash
+python -m tickets show TASK-001
+python -m tickets show EPIC-001
+```
+
+Expected:
+- Task output contains `status: in_progress`
+- Epic output contains `status: in_progress`
+
+### Test E3: Dependency guard rejects non-blocked transition while dependency is unresolved
+
+Ticket `T-002` depends on `T-001`. While `T-001` is not closed, this should fail:
+
+```bash
+python -m tickets set-status T-002 open
+```
+
+Expected:
+- Non-zero exit code
+- Error output contains `not closed`
+
+### Test E4: Explicitly block dependent ticket
+
+```bash
+python -m tickets set-status T-002 blocked
+```
+
+Expected:
+- Exit code `0`
+- Output contains `T-002: status`
+
+### Test E5: Resolve dependency and unblock ticket
+
+Close dependency:
+
+```bash
+python -m tickets set-status T-001 closed
+```
+
+Then reopen dependent ticket:
+
+```bash
+python -m tickets set-status T-002 open
+```
+
+Expected:
+- Both commands exit `0`
+- Second command succeeds because dependency is now closed
+
+### Test E6: Command rejects non-ticket IDs
+
+```bash
+python -m tickets set-status TASK-001 closed
+python -m tickets set-status EPIC-001 closed
+```
+
+Expected:
+- Non-zero exit code for both commands
+- Error output contains `only supported for tickets`

@@ -9,6 +9,7 @@ SAMPLE_TASK_YAML = """
 id: TASK-001
 title: Example task
 status: open
+depends_on: []
 description: Task description
 acceptance_criteria:
     - criterion one
@@ -161,6 +162,14 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual(parsed_arguments.command, "import-plan")
         self.assertEqual(parsed_arguments.plan_file, "plan.yaml")
+
+    def test_argument_parsing_for_set_status_command(self) -> None:
+        parser = build_parser()
+        parsed_arguments = parser.parse_args(["set-status", "T-001", "closed"])
+
+        self.assertEqual(parsed_arguments.command, "set-status")
+        self.assertEqual(parsed_arguments.ticket_id, "T-001")
+        self.assertEqual(parsed_arguments.status, "closed")
 
     def test_argument_parsing_for_upgrade_command(self) -> None:
         parser = build_parser()
@@ -325,8 +334,8 @@ class CliTests(unittest.TestCase):
     def test_next_command_with_no_actionable_ticket_shows_message(self) -> None:
         with tempfile.TemporaryDirectory() as temp_directory_string:
             root_path = Path(temp_directory_string)
-            write_sample_task(root_path)
-            write_sample_epic(root_path)
+            write_sample_task_with_status(root_path, status="in_progress")
+            write_sample_epic_with_status(root_path, status="in_progress")
             write_sample_ticket(root_path, ticket_id="T-001", status="closed")
             write_sample_ticket(root_path, ticket_id="T-002", status="blocked")
 
@@ -410,8 +419,8 @@ class CliTests(unittest.TestCase):
     def test_prompt_next_with_no_actionable_ticket_shows_message(self) -> None:
         with tempfile.TemporaryDirectory() as temp_directory_string:
             root_path = Path(temp_directory_string)
-            write_sample_task(root_path)
-            write_sample_epic(root_path)
+            write_sample_task_with_status(root_path, status="in_progress")
+            write_sample_epic_with_status(root_path, status="in_progress")
             write_sample_ticket(root_path, ticket_id="T-001", status="closed")
             write_sample_ticket(root_path, ticket_id="T-002", status="blocked")
 
@@ -487,7 +496,7 @@ class CliTests(unittest.TestCase):
     def test_upgrade_command_adds_default_depends_on_for_missing_metadata(self) -> None:
         with tempfile.TemporaryDirectory() as temp_directory_string:
             root_path = Path(temp_directory_string)
-            write_sample_task(root_path)
+            write_sample_task_without_depends_on(root_path)
             write_sample_epic_without_depends_on(root_path)
             write_sample_ticket_without_depends_on(root_path, ticket_id="T-001")
 
@@ -541,12 +550,95 @@ class CliTests(unittest.TestCase):
             self.assertEqual(standard_output.getvalue(), "")
             self.assertEqual(standard_error.getvalue(), "")
 
+    def test_set_status_updates_ticket_and_parent_statuses(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_directory_string:
+            root_path = Path(temp_directory_string)
+            write_sample_task_with_depends_on(root_path)
+            write_sample_epic(root_path)
+            write_sample_ticket(root_path, ticket_id="T-001", status="open", depends_on=[])
+            write_sample_ticket(root_path, ticket_id="T-002", status="open", depends_on=["T-001"])
+
+            standard_output = StringIO()
+            standard_error = StringIO()
+            exit_code = run_cli(
+                ["set-status", "T-001", "closed"],
+                standard_output=standard_output,
+                standard_error=standard_error,
+                root_path=root_path,
+            )
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(standard_error.getvalue(), "")
+            output_text = standard_output.getvalue()
+            self.assertIn("T-001: status open -> closed", output_text)
+            self.assertIn("TASK-001: status open -> in_progress", output_text)
+            self.assertIn("EPIC-001: status open -> in_progress", output_text)
+
+    def test_set_status_rejects_non_ticket_id(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_directory_string:
+            root_path = Path(temp_directory_string)
+            write_sample_task_with_depends_on(root_path)
+            write_sample_epic(root_path)
+            write_sample_ticket(root_path, ticket_id="T-001", status="open", depends_on=[])
+
+            standard_output = StringIO()
+            standard_error = StringIO()
+            exit_code = run_cli(
+                ["set-status", "TASK-001", "closed"],
+                standard_output=standard_output,
+                standard_error=standard_error,
+                root_path=root_path,
+            )
+
+            self.assertEqual(exit_code, 1)
+            self.assertEqual(standard_output.getvalue(), "")
+            self.assertIn("only supported for tickets", standard_error.getvalue())
+
 
 def write_sample_task(root_path: Path) -> None:
     tasks_directory = root_path / ".tickets" / "tasks"
     tasks_directory.mkdir(parents=True, exist_ok=True)
     task_path = tasks_directory / "TASK-001.yaml"
     task_path.write_text(SAMPLE_TASK_YAML, encoding="utf-8")
+
+
+def write_sample_task_without_depends_on(root_path: Path) -> None:
+    tasks_directory = root_path / ".tickets" / "tasks"
+    tasks_directory.mkdir(parents=True, exist_ok=True)
+    task_path = tasks_directory / "TASK-001.yaml"
+    task_path.write_text(
+        "\n".join(
+            [
+                "id: TASK-001",
+                "title: Example task",
+                "status: open",
+                "description: Task description",
+                "acceptance_criteria:",
+                "    - criterion one",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+
+def write_sample_task_with_status(root_path: Path, status: str) -> None:
+    tasks_directory = root_path / ".tickets" / "tasks"
+    tasks_directory.mkdir(parents=True, exist_ok=True)
+    task_path = tasks_directory / "TASK-001.yaml"
+    task_path.write_text(
+        "\n".join(
+            [
+                "id: TASK-001",
+                "title: Example task",
+                f"status: {status}",
+                "depends_on: []",
+                "description: Task description",
+                "acceptance_criteria:",
+                "    - criterion one",
+            ]
+        ),
+        encoding="utf-8",
+    )
 
 
 def write_sample_task_with_depends_on(root_path: Path) -> None:
@@ -561,6 +653,27 @@ def write_sample_epic(root_path: Path) -> None:
     epics_directory.mkdir(parents=True, exist_ok=True)
     epic_path = epics_directory / "EPIC-001.yaml"
     epic_path.write_text(SAMPLE_EPIC_YAML, encoding="utf-8")
+
+
+def write_sample_epic_with_status(root_path: Path, status: str) -> None:
+    epics_directory = root_path / ".tickets" / "epics"
+    epics_directory.mkdir(parents=True, exist_ok=True)
+    epic_path = epics_directory / "EPIC-001.yaml"
+    epic_path.write_text(
+        "\n".join(
+            [
+                "id: EPIC-001",
+                "task: TASK-001",
+                "title: Example epic",
+                f"status: {status}",
+                "depends_on: []",
+                "description: Epic description",
+                "acceptance_criteria:",
+                "    - criterion one",
+            ]
+        ),
+        encoding="utf-8",
+    )
 
 
 def write_sample_epic_without_depends_on(root_path: Path) -> None:

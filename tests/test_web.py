@@ -8,6 +8,7 @@ SAMPLE_TASK_YAML = """
 id: TASK-001
 title: Example task
 status: open
+depends_on: []
 description: Task description
 acceptance_criteria:
   - criterion one
@@ -18,6 +19,7 @@ id: EPIC-001
 task: TASK-001
 title: Example epic
 status: open
+depends_on: []
 description: Epic description
 acceptance_criteria:
   - criterion one

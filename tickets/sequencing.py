@@ -1,9 +1,8 @@
 import re
 
 from tickets.models import Epic, Task, Ticket
-
-OPEN_STATUS = "open"
-CLOSED_STATUS = "closed"
+from tickets.status_engine import compute_ticket_effective_status
+from tickets.statuses import OPEN_STATUS
 
 
 def find_next_actionable_ticket(
@@ -49,14 +48,4 @@ def extract_numeric_suffix(value: str) -> int:
 
 
 def is_ticket_actionable(ticket: Ticket, tickets_by_id: dict[str, Ticket]) -> bool:
-    if ticket.status != OPEN_STATUS:
-        return False
-
-    for dependency_id in ticket.depends_on:
-        dependency_ticket = tickets_by_id.get(dependency_id)
-        if dependency_ticket is None:
-            return False
-        if dependency_ticket.status != CLOSED_STATUS:
-            return False
-
-    return True
+    return compute_ticket_effective_status(ticket, tickets_by_id) == OPEN_STATUS

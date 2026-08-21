@@ -17,6 +17,7 @@ INVALID_ACCEPTANCE_CRITERIA_TASK_YAML = """
 id: TASK-001
 title: Example task
 status: open
+depends_on: []
 description: Example
 acceptance_criteria: not-a-list
 """.strip()
@@ -25,6 +26,7 @@ SAMPLE_TASK_YAML_TEMPLATE = """
 id: {task_id}
 title: Sample task
 status: open
+depends_on: []
 description: Example task description
 acceptance_criteria:
     - criterion one

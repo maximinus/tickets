@@ -21,9 +21,7 @@ DEFAULT_DEPENDS_ON_VALUE: list[str] = []
 def upgrade_repository_metadata(root_path: Path) -> list[str]:
     update_messages: list[str] = []
 
-    # Fail fast when repository data is already invalid for non-metadata reasons.
     repository = TicketRepository(root_path)
-    repository.load_all()
 
     update_messages.extend(
         add_default_depends_on_to_directory(

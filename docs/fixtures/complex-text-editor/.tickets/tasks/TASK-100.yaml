@@ -1,6 +1,7 @@
 id: TASK-100
 title: Build core text editing experience
-status: open
+status: in_progress
+depends_on: []
 description: |
   Deliver the main local editing workflow for a desktop-first text editor.
   This includes a responsive editor surface, file operations, and command palette.

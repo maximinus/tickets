@@ -2,6 +2,7 @@ id: EPIC-210
 task: TASK-200
 title: Syntax, search, and layout productivity tools
 status: open
+depends_on: []
 description: |
   Implement advanced editing capabilities including syntax highlighting,
   search and replace, and split-pane layouts.

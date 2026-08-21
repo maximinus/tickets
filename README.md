@@ -95,6 +95,19 @@ tickets prompt T-001
 tickets prompt-next
 ```
 
+### Status Updates
+
+```bash
+tickets set-status T-001 open
+tickets set-status T-001 in_progress
+tickets set-status T-001 blocked
+tickets set-status T-001 closed
+```
+
+Notes:
+- Only tickets can be updated explicitly.
+- Task and epic statuses are derived from child progress and dependency rules.
+
 ### Creation and Import
 
 ```bash
@@ -128,7 +141,30 @@ Ticket dependencies are modeled with `depends_on` and are only valid for tickets
 
 A dependency graph that references missing entities or creates a cycle is rejected during validation.
 
+Dependencies are satisfied only by `closed`.
+
+For all entity levels, dependency blocking is local:
+- Ticket blocking is determined from direct ticket dependencies.
+- Task blocking is determined from direct task dependencies.
+- Epic blocking is determined from direct epic dependencies.
+
 When no dependencies are present, the next actionable ticket is chosen by the lowest numbered epic, then the lowest numbered task in that epic, then the lowest numbered ticket in that task.
+
+## Status model
+
+Allowed status tokens are:
+- `open`
+- `in_progress`
+- `blocked`
+- `closed`
+
+Ticket status is explicit and can be updated with `tickets set-status`.
+
+Task and epic statuses are stored but validated against derived values:
+- Task status is derived from direct child tickets.
+- Epic status is derived from direct child tasks.
+
+`blocked` is an effective state based on unresolved dependencies.
 
 ## End-to-End Workflow
 

@@ -9,6 +9,7 @@ SAMPLE_EXISTING_TASK_YAML = """
 id: TASK-001
 title: Existing task
 status: open
+depends_on: []
 description: Existing task description
 acceptance_criteria:
     - existing criterion
@@ -20,6 +21,7 @@ epic:
   task: TASK-001
   title: Imported epic
   status: open
+  depends_on: []
   description: Imported epic description
   acceptance_criteria:
     - epic criterion
@@ -55,6 +57,7 @@ epic:
   task: TASK-999
   title: Imported epic
   status: open
+  depends_on: []
   description: Imported epic description
   acceptance_criteria:
     - epic criterion
@@ -78,6 +81,7 @@ epic:
   task: TASK-001
   title: Imported epic
   status: open
+  depends_on: []
   description: Imported epic description
   acceptance_criteria:
     - epic criterion
@@ -102,6 +106,7 @@ epic:
   task: TASK-001
   title: Imported epic
   status: open
+  depends_on: []
   description: Imported epic description
   acceptance_criteria:
     - epic criterion
@@ -141,6 +146,7 @@ epic:
   task: TASK-001
   title: Imported epic
   status: invalid
+  depends_on: []
   description: Imported epic description
   acceptance_criteria:
     - epic criterion
